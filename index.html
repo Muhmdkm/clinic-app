@@ -1,0 +1,267 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>تطبيق عيادة الجراحة</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: a fixed sidebar on the right for desktop, a bottom bar on phones, and a single column of cards. */
+:root{--bg:#f5f4ef;--surface:#ffffff;--fg:#1c2a29;--muted:#66756f;--line:#e0e5e1;--accent:#0e6b67;--accent-soft:#d9eeea;--ok:#2d7a4b;--ok-soft:#dff2e6;--warn:#8a5a0b;--warn-soft:#fbefd6;--danger:#a3271c;--danger-soft:#f8e0dd;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121b1a;--surface:#1a2625;--fg:#e6eeeb;--muted:#9aaaa5;--line:#2a3a38;--accent:#5fc7bf;--accent-soft:#1f3b39;--ok:#7bd19b;--ok-soft:#1d3a2a;--warn:#e7b65a;--warn-soft:#3a2f16;--danger:#f08a7e;--danger-soft:#3d211e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121b1a;--surface:#1a2625;--fg:#e6eeeb;--muted:#9aaaa5;--line:#2a3a38;--accent:#5fc7bf;--accent-soft:#1f3b39;--ok:#7bd19b;--ok-soft:#1d3a2a;--warn:#e7b65a;--warn-soft:#3a2f16;--danger:#f08a7e;--danger-soft:#3d211e;color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Cairo,"Segoe UI",Tahoma,system-ui,sans-serif;font-size:15px;line-height:1.6;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+.nav{position:sticky;top:0;height:100vh;box-sizing:border-box;background:var(--surface);border-inline-start:1px solid var(--line);padding:24px 14px;display:flex;flex-direction:column;gap:4px}
+.brand{padding:4px 12px 20px}
+.brand strong{display:block;font-size:17px;font-weight:800}
+.tab{color:var(--muted);text-decoration:none;padding:10px 12px;border-radius:10px;font-weight:600}
+.tab:hover{color:var(--fg)}
+.tab[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{padding:28px 0 48px;min-width:0}
+.wrap{max-width:960px;margin-inline:auto}
+h1{font-size:24px;font-weight:800;margin:0 0 4px;text-wrap:balance}
+h2{font-size:16px;font-weight:700;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 20px}
+.meta{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.mt{margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat .n{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat .l{color:var(--muted);font-size:13px}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
+.row:last-child{border-bottom:0}
+.row > div:first-child{min-width:0;overflow-wrap:anywhere}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.pill.scheduled{background:var(--accent-soft);color:var(--accent)}
+.pill.active{background:var(--warn-soft);color:var(--warn)}
+.pill.done{background:var(--ok-soft);color:var(--ok)}
+.pill.cancelled{background:var(--danger-soft);color:var(--danger)}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;width:100%;box-sizing:border-box;min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+label{font-size:13px;color:var(--muted);display:grid;gap:4px;min-width:0}
+.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+.btn{font:inherit;font-weight:700;background:var(--accent);color:var(--bg);border:1px solid var(--accent);border-radius:10px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:none;color:var(--muted);border-color:var(--line)}
+.btn.ghost:hover{color:var(--danger);border-color:var(--danger)}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actions select{width:auto}
+.toolbar{margin-bottom:12px}
+.toolbar input{max-width:360px}
+.empty{color:var(--muted);text-align:center;padding:28px 0}
+.notice{background:var(--warn-soft);color:var(--warn);padding:12px 14px;border-radius:12px;font-size:14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+.notice .btn{background:none;color:var(--warn);border-color:currentColor}
+@media (max-width:800px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .nav{position:fixed;inset:auto 0 0 0;height:auto;flex-direction:row;justify-content:space-around;gap:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));border-inline-start:0;border-top:1px solid var(--line);z-index:5}
+  .brand{display:none}
+  .tab{flex:1;text-align:center;font-size:13px;padding:8px 4px}
+  main{padding-bottom:110px}
+}
+</style>
+
+<div class="app" dir="rtl">
+  <aside class="nav" aria-label="القائمة الرئيسية">
+    <div class="brand"><strong>عيادة الجراحة</strong><span class="meta">نظام إدارة العيادة</span></div>
+    <a class="tab" href="#dash" data-view="dash">لوحة التحكم</a>
+    <a class="tab" href="#patients" data-view="patients">المرضى</a>
+    <a class="tab" href="#surgeries" data-view="surgeries">العمليات</a>
+  </aside>
+  <main>
+    <div class="wrap" id="view"></div>
+  </main>
+</div>
+
+<script>
+const KEY = 'clinic-app-v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const dateStr = off => { const d = new Date(); d.setDate(d.getDate() + off); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const todayStr = () => dateStr(0);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const fmtDate = t => new Date(t + 'T00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+const STATUS = { scheduled: 'مجدولة', active: 'جارية', done: 'مكتملة', cancelled: 'ملغاة' };
+
+function seed() {
+  const p1 = uid(), p2 = uid(), p3 = uid();
+  return {
+    demo: true,
+    patients: [
+      { id: p1, name: 'أحمد محمود', age: 54, phone: '01000000001', diagnosis: 'حصوة في المرارة' },
+      { id: p2, name: 'منى السيد', age: 38, phone: '01100000002', diagnosis: 'فتق إربي' },
+      { id: p3, name: 'محمد علي', age: 67, phone: '01200000003', diagnosis: 'تضخم البروستاتا' }
+    ],
+    surgeries: [
+      { id: uid(), patientId: p1, type: 'استئصال المرارة بالمنظار', date: todayStr(), time: '09:00', surgeon: 'د. خالد عمر', status: 'scheduled' },
+      { id: uid(), patientId: p2, type: 'إصلاح الفتق الإربي', date: todayStr(), time: '11:30', surgeon: 'د. ياسمين فؤاد', status: 'done' },
+      { id: uid(), patientId: p3, type: 'استئصال البروستاتا بالمنظار', date: dateStr(1), time: '10:00', surgeon: 'د. خالد عمر', status: 'scheduled' }
+    ]
+  };
+}
+
+let db;
+try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; }
+if (!db) { db = seed(); save(); }
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+function commit() { save(); render(); }
+function val(id) { return $('#' + id).value.trim(); }
+
+function arm(btn, fn) {
+  if (btn.dataset.armed) { fn(); return; }
+  const old = btn.textContent;
+  btn.dataset.armed = '1';
+  btn.textContent = 'اضغط مرة أخرى للتأكيد';
+  setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; }, 3000);
+}
+
+const stat = (n, l) => `<div class="card stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+
+function surgeryRow(s, withActions = false) {
+  const p = db.patients.find(x => x.id === s.patientId);
+  const name = p ? esc(p.name) : 'مريض محذوف';
+  const options = Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${k === s.status ? ' selected' : ''}>${v}</option>`).join('');
+  const actions = withActions
+    ? `<div class="actions"><select data-action="status" data-id="${s.id}" aria-label="حالة العملية">${options}</select><button class="btn ghost" data-action="del-surgery" data-id="${s.id}">حذف</button></div>`
+    : `<span class="pill ${s.status}">${STATUS[s.status]}</span>`;
+  return `<div class="row"><div><strong>${esc(s.type)}</strong><div class="meta">${name} · ${esc(s.surgeon)} · ${s.date} ${s.time}</div></div>${actions}</div>`;
+}
+
+function viewDash() {
+  const t = todayStr();
+  const todays = db.surgeries.filter(s => s.date === t).sort((a, b) => a.time.localeCompare(b.time));
+  const upcoming = db.surgeries.filter(s => s.status === 'scheduled' && s.date > t).length;
+  const done = db.surgeries.filter(s => s.status === 'done').length;
+  const notice = db.demo
+    ? `<div class="notice"><span>هذه بيانات تجريبية للعرض فقط.</span><button class="btn" data-action="reset">مسح البيانات</button></div>`
+    : '';
+  return `${notice}
+    <h1>لوحة التحكم</h1>
+    <p class="sub">ملخص اليوم، ${fmtDate(t)}</p>
+    <div class="stats">
+      ${stat(db.patients.length, 'إجمالي المرضى')}
+      ${stat(todays.length, 'عمليات اليوم')}
+      ${stat(upcoming, 'عمليات قادمة')}
+      ${stat(done, 'عمليات مكتملة')}
+    </div>
+    <div class="card mt">
+      <h2>جدول اليوم</h2>
+      ${todays.length ? todays.map(s => surgeryRow(s)).join('') : '<div class="empty">لا توجد عمليات مجدولة اليوم</div>'}
+    </div>`;
+}
+
+function patientRows(q = '') {
+  const term = q.trim();
+  const list = db.patients.filter(p => !term || [p.name, p.phone, p.diagnosis].some(x => String(x ?? '').includes(term)));
+  if (!list.length) return '<div class="empty">لا يوجد مرضى مطابقون للبحث</div>';
+  return list.map(p => {
+    const count = db.surgeries.filter(s => s.patientId === p.id).length;
+    const age = p.age ? ` · ${esc(p.age)} سنة` : '';
+    return `<div class="row">
+      <div><strong>${esc(p.name)}</strong><div class="meta">${esc(p.diagnosis)}${age} · ${esc(p.phone)}</div></div>
+      <div class="actions"><span class="meta">${count} عملية</span><button class="btn ghost" data-action="del-patient" data-id="${p.id}">حذف</button></div>
+    </div>`;
+  }).join('');
+}
+
+function viewPatients() {
+  return `
+    <h1>المرضى</h1>
+    <p class="sub">تسجيل المرضى ومتابعة بياناتهم</p>
+    <div class="card">
+      <h2>إضافة مريض جديد</h2>
+      <form id="patient-form" class="grid-form">
+        <label>الاسم الكامل<input id="p-name" required></label>
+        <label>السن<input id="p-age" type="number" min="0" max="120"></label>
+        <label>رقم الهاتف<input id="p-phone" type="tel"></label>
+        <label>التشخيص<input id="p-diag"></label>
+        <button class="btn" type="submit">إضافة المريض</button>
+      </form>
+    </div>
+    <div class="card mt">
+      <div class="toolbar"><input id="p-search" type="search" placeholder="ابحث بالاسم أو الهاتف أو التشخيص" aria-label="بحث في المرضى"></div>
+      <div id="patient-list">${patientRows()}</div>
+    </div>`;
+}
+
+function viewSurgeries() {
+  const options = db.patients.length
+    ? db.patients.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+    : '<option value="" disabled selected>أضف مريضاً أولاً</option>';
+  const list = [...db.surgeries].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  return `
+    <h1>العمليات</h1>
+    <p class="sub">جدولة العمليات وتحديث حالتها</p>
+    <div class="card">
+      <h2>جدولة عملية جديدة</h2>
+      <form id="surgery-form" class="grid-form">
+        <label>المريض<select id="s-patient" required>${options}</select></label>
+        <label>نوع العملية<input id="s-type" required></label>
+        <label>التاريخ<input id="s-date" type="date" value="${todayStr()}" required></label>
+        <label>الوقت<input id="s-time" type="time" value="09:00" required></label>
+        <label>الجراح<input id="s-surgeon"></label>
+        <button class="btn" type="submit">حفظ الموعد</button>
+      </form>
+    </div>
+    <div class="card mt">
+      <h2>كل العمليات</h2>
+      ${list.length ? list.map(s => surgeryRow(s, true)).join('') : '<div class="empty">لم تُجدول أي عمليات بعد</div>'}
+    </div>`;
+}
+
+const VIEWS = { dash: viewDash, patients: viewPatients, surgeries: viewSurgeries };
+
+function render() {
+  const key = VIEWS[(location.hash || '#dash').slice(1)] ? location.hash.slice(1) : 'dash';
+  document.querySelectorAll('.tab').forEach(a => {
+    if (a.dataset.view === key) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  $('#view').innerHTML = VIEWS[key]();
+}
+
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.id === 'patient-form') {
+    db.patients.push({ id: uid(), name: val('p-name'), age: val('p-age'), phone: val('p-phone'), diagnosis: val('p-diag') });
+    commit();
+  } else if (f.id === 'surgery-form') {
+    db.surgeries.push({ id: uid(), patientId: val('s-patient'), type: val('s-type'), date: val('s-date'), time: val('s-time'), surgeon: val('s-surgeon'), status: 'scheduled' });
+    commit();
+  }
+});
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.action) {
+    case 'del-surgery':
+      db.surgeries = db.surgeries.filter(s => s.id !== id);
+      commit();
+      break;
+    case 'del-patient':
+      arm(b, () => {
+        db.patients = db.patients.filter(p => p.id !== id);
+        db.surgeries = db.surgeries.filter(s => s.patientId !== id);
+        commit();
+      });
+      break;
+    case 'reset':
+      arm(b, () => { db = { demo: false, patients: [], surgeries: [] }; commit(); });
+      break;
+  }
+});
+
+document.addEventListener('change', e => {
+  if (e.target.dataset.action === 'status') {
+    const s = db.surgeries.find(x => x.id === e.target.dataset.id);
+    if (s) { s.status = e.target.value; commit(); }
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'p-search') $('#patient-list').innerHTML = patientRows(e.target.value);
+});
+
+window.addEventListener('hashchange', render);
+render();
+</script>
