@@ -315,18 +315,31 @@ class SurgeryTile extends StatelessWidget {
   final Surgery surgery;
   final bool editable;
 
+  void _openChecklist(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SurgeryChecklistScreen(store: store, surgeryId: surgery.id),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final patient = store.patientById(surgery.patientId);
     final chip = Chip(label: Text(surgery.status.label));
+    final checklistInfo =
+        'قائمة التحقق ${surgery.checklistDone}/${surgeryChecklistItems.length}';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         isThreeLine: true,
+        onTap: editable ? () => _openChecklist(context) : null,
         title: Text(surgery.type),
         subtitle: Text(
-          '${patient?.name ?? 'مريض محذوف'} · ${surgery.surgeon}\n${surgery.date} ${surgery.time}',
+          '${patient?.name ?? 'مريض محذوف'} · ${surgery.surgeon}\n'
+          '${surgery.date} ${surgery.time} · $checklistInfo',
         ),
         trailing: editable
             ? Row(
@@ -334,7 +347,14 @@ class SurgeryTile extends StatelessWidget {
                 children: [
                   PopupMenuButton<SurgeryStatus>(
                     tooltip: 'تغيير الحالة',
-                    onSelected: (s) => store.setStatus(surgery.id, s),
+                    onSelected: (s) {
+                      final ok = store.setStatus(surgery.id, s);
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('أكمل قائمة التحقق قبل تحديد العملية كمكتملة')),
+                        );
+                      }
+                    },
                     itemBuilder: (_) => [
                       for (final s in SurgeryStatus.values)
                         PopupMenuItem(value: s, child: Text(s.label)),
@@ -350,6 +370,58 @@ class SurgeryTile extends StatelessWidget {
               )
             : chip,
       ),
+    );
+  }
+}
+
+class SurgeryChecklistScreen extends StatelessWidget {
+  const SurgeryChecklistScreen({super.key, required this.store, required this.surgeryId});
+
+  final ClinicStore store;
+  final String surgeryId;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final index = store.surgeries.indexWhere((s) => s.id == surgeryId);
+        if (index == -1) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('قائمة التحقق')),
+            body: const Center(child: Text('العملية غير موجودة')),
+          );
+        }
+        final s = store.surgeries[index];
+        final total = surgeryChecklistItems.length;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('قائمة التحقق')),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(s.type, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text('${s.checklistDone} من $total مكتمل'),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: s.checklistDone / total),
+              const SizedBox(height: 12),
+              for (var i = 0; i < total; i++)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(surgeryChecklistItems[i]),
+                  value: s.checklist[i],
+                  onChanged: (_) => store.toggleChecklist(surgeryId, i),
+                ),
+              const SizedBox(height: 12),
+              Text(
+                'لا يمكن تحديد العملية كمكتملة إلا بعد إكمال كل البنود.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

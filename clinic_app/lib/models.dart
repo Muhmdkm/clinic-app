@@ -9,6 +9,17 @@ extension SurgeryStatusLabel on SurgeryStatus {
       };
 }
 
+/// Items every surgery must check off before it can be marked as done.
+const surgeryChecklistItems = <String>[
+  'تأكيد هوية المريض ونوع العملية',
+  'وجود الموافقة المكتوبة على العملية',
+  'مراجعة الفحوصات والأشعة',
+  'تأكيد صيام المريض والأدوية المطلوبة',
+  'تجهيز الأدوات والمستلزمات',
+  'تأكيد التخدير وعلامات المريض الحيوية',
+  'تسجيل ملاحظات ما بعد العملية',
+];
+
 /// Formats a date as yyyy-MM-dd so dates can be compared as strings.
 String dateKey(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -57,7 +68,8 @@ class Surgery {
     required this.time,
     required this.surgeon,
     this.status = SurgeryStatus.scheduled,
-  });
+    List<bool>? checklist,
+  }) : checklist = _fitChecklist(checklist);
 
   final String id;
   final String patientId;
@@ -67,7 +79,19 @@ class Surgery {
   final String surgeon;
   final SurgeryStatus status;
 
-  Surgery copyWith({SurgeryStatus? status}) => Surgery(
+  /// One entry per item in [surgeryChecklistItems].
+  final List<bool> checklist;
+
+  bool get checklistComplete => checklist.every((c) => c);
+  int get checklistDone => checklist.where((c) => c).length;
+
+  /// Pads or trims a saved checklist so it always matches the current items.
+  static List<bool> _fitChecklist(List<bool>? raw) => List<bool>.generate(
+        surgeryChecklistItems.length,
+        (i) => raw != null && i < raw.length ? raw[i] : false,
+      );
+
+  Surgery copyWith({SurgeryStatus? status, List<bool>? checklist}) => Surgery(
         id: id,
         patientId: patientId,
         type: type,
@@ -75,6 +99,7 @@ class Surgery {
         time: time,
         surgeon: surgeon,
         status: status ?? this.status,
+        checklist: checklist ?? this.checklist,
       );
 
   Map<String, dynamic> toJson() => {
@@ -85,6 +110,7 @@ class Surgery {
         'time': time,
         'surgeon': surgeon,
         'status': status.name,
+        'checklist': checklist,
       };
 
   factory Surgery.fromJson(Map<String, dynamic> j) => Surgery(
@@ -95,5 +121,6 @@ class Surgery {
         time: j['time'] as String,
         surgeon: j['surgeon'] as String? ?? '',
         status: SurgeryStatus.values.byName(j['status'] as String),
+        checklist: (j['checklist'] as List?)?.cast<bool>(),
       );
 }

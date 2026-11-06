@@ -79,10 +79,27 @@ class ClinicStore extends ChangeNotifier {
     _changed();
   }
 
-  void setStatus(String surgeryId, SurgeryStatus status) {
+  /// Returns false when the surgery can't be marked done yet because its checklist is incomplete.
+  bool setStatus(String surgeryId, SurgeryStatus status) {
+    final i = surgeries.indexWhere((s) => s.id == surgeryId);
+    if (i == -1) return false;
+    if (status == SurgeryStatus.done && !surgeries[i].checklistComplete) return false;
+    surgeries[i] = surgeries[i].copyWith(status: status);
+    _changed();
+    return true;
+  }
+
+  void toggleChecklist(String surgeryId, int index) {
     final i = surgeries.indexWhere((s) => s.id == surgeryId);
     if (i == -1) return;
-    surgeries[i] = surgeries[i].copyWith(status: status);
+    final list = [...surgeries[i].checklist];
+    list[index] = !list[index];
+    var updated = surgeries[i].copyWith(checklist: list);
+    // A done surgery goes back to active when its checklist is no longer complete.
+    if (!updated.checklistComplete && updated.status == SurgeryStatus.done) {
+      updated = updated.copyWith(status: SurgeryStatus.active);
+    }
+    surgeries[i] = updated;
     _changed();
   }
 
@@ -112,7 +129,16 @@ class ClinicStore extends ChangeNotifier {
     ]);
     surgeries.addAll([
       Surgery(id: _newId(), patientId: p1, type: 'استئصال المرارة بالمنظار', date: today, time: '09:00', surgeon: 'د. خالد عمر'),
-      Surgery(id: _newId(), patientId: p2, type: 'إصلاح الفتق الإربي', date: today, time: '11:30', surgeon: 'د. ياسمين فؤاد', status: SurgeryStatus.done),
+      Surgery(
+        id: _newId(),
+        patientId: p2,
+        type: 'إصلاح الفتق الإربي',
+        date: today,
+        time: '11:30',
+        surgeon: 'د. ياسمين فؤاد',
+        status: SurgeryStatus.done,
+        checklist: List.filled(surgeryChecklistItems.length, true),
+      ),
       Surgery(id: _newId(), patientId: p3, type: 'استئصال البروستاتا بالمنظار', date: tomorrow, time: '10:00', surgeon: 'د. خالد عمر'),
     ]);
     isDemo = true;
